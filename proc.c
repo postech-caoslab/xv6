@@ -330,9 +330,11 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
+    int found = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
+      found = 1;
 
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
@@ -350,6 +352,10 @@ scheduler(void)
     }
     release(&ptable.lock);
 
+    // Nothing to run: halt until the next interrupt instead of
+    // spinning the CPU at 100%.
+    if(!found)
+      hlt();
   }
 }
 
