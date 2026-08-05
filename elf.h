@@ -1,4 +1,4 @@
-// Format of an ELF executable file
+// Format of an ELF64 executable file
 
 #define ELF_MAGIC 0x464C457FU  // "\x7FELF" in little endian
 
@@ -9,9 +9,9 @@ struct elfhdr {
   ushort type;
   ushort machine;
   uint version;
-  uint entry;
-  uint phoff;
-  uint shoff;
+  uint64 entry;
+  uint64 phoff;
+  uint64 shoff;
   uint flags;
   ushort ehsize;
   ushort phentsize;
@@ -24,13 +24,13 @@ struct elfhdr {
 // Program section header
 struct proghdr {
   uint type;
-  uint off;
-  uint vaddr;
-  uint paddr;
-  uint filesz;
-  uint memsz;
   uint flags;
-  uint align;
+  uint64 off;
+  uint64 vaddr;
+  uint64 paddr;
+  uint64 filesz;
+  uint64 memsz;
+  uint64 align;
 };
 
 // Values for Proghdr type

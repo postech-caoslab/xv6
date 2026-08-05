@@ -2,7 +2,7 @@
 //
 // Part of the boot block, along with bootasm.S, which calls bootmain().
 // bootasm.S has put the processor into protected 32-bit mode.
-// bootmain() loads an ELF kernel image from the disk starting at
+// bootmain() loads an ELF64 kernel image from the disk starting at
 // sector 1 and then jumps to the kernel entry routine.
 
 #include "types.h"
@@ -32,18 +32,20 @@ bootmain(void)
     return;  // let bootasm.S handle error
 
   // Load each program segment (ignores ph flags).
-  ph = (struct proghdr*)((uchar*)elf + elf->phoff);
+  // The ELF64 fields are 64 bits wide, but the kernel is loaded
+  // below 4GB, so the low 32 bits suffice.
+  ph = (struct proghdr*)((uchar*)elf + (uint)elf->phoff);
   eph = ph + elf->phnum;
   for(; ph < eph; ph++){
-    pa = (uchar*)ph->paddr;
-    readseg(pa, ph->filesz, ph->off);
+    pa = (uchar*)(uint)ph->paddr;
+    readseg(pa, (uint)ph->filesz, (uint)ph->off);
     if(ph->memsz > ph->filesz)
-      stosb(pa + ph->filesz, 0, ph->memsz - ph->filesz);
+      stosb(pa + (uint)ph->filesz, 0, (uint)(ph->memsz - ph->filesz));
   }
 
   // Call the entry point from the ELF header.
   // Does not return!
-  entry = (void(*)(void))(elf->entry);
+  entry = (void(*)(void))((uint)elf->entry);
   entry();
 }
 

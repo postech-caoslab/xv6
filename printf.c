@@ -9,15 +9,15 @@ putc(int fd, char c)
 }
 
 static void
-printint(int fd, int xx, int base, int sgn)
+printint(int fd, uint64 xx, int base, int sgn)
 {
   static char digits[] = "0123456789ABCDEF";
-  char buf[16];
+  char buf[24];
   int i, neg;
-  uint x;
+  uint64 x;
 
   neg = 0;
-  if(sgn && xx < 0){
+  if(sgn && (long)xx < 0){
     neg = 1;
     x = -xx;
   } else {
@@ -35,16 +35,16 @@ printint(int fd, int xx, int base, int sgn)
     putc(fd, buf[i]);
 }
 
-// Print to the given fd. Only understands %d, %x, %p, %s.
+// Print to the given fd. Only understands %d, %x, %p, %s, %c.
 void
 printf(int fd, const char *fmt, ...)
 {
+  __builtin_va_list ap;
   char *s;
   int c, i, state;
-  uint *ap;
 
   state = 0;
-  ap = (uint*)(void*)&fmt + 1;
+  __builtin_va_start(ap, fmt);
   for(i = 0; fmt[i]; i++){
     c = fmt[i] & 0xff;
     if(state == 0){
@@ -55,14 +55,13 @@ printf(int fd, const char *fmt, ...)
       }
     } else if(state == '%'){
       if(c == 'd'){
-        printint(fd, *ap, 10, 1);
-        ap++;
-      } else if(c == 'x' || c == 'p'){
-        printint(fd, *ap, 16, 0);
-        ap++;
+        printint(fd, __builtin_va_arg(ap, int), 10, 1);
+      } else if(c == 'x'){
+        printint(fd, __builtin_va_arg(ap, uint), 16, 0);
+      } else if(c == 'p'){
+        printint(fd, __builtin_va_arg(ap, uint64), 16, 0);
       } else if(c == 's'){
-        s = (char*)*ap;
-        ap++;
+        s = __builtin_va_arg(ap, char*);
         if(s == 0)
           s = "(null)";
         while(*s != 0){
@@ -70,8 +69,7 @@ printf(int fd, const char *fmt, ...)
           s++;
         }
       } else if(c == 'c'){
-        putc(fd, *ap);
-        ap++;
+        putc(fd, __builtin_va_arg(ap, int));
       } else if(c == '%'){
         putc(fd, c);
       } else {
@@ -82,4 +80,5 @@ printf(int fd, const char *fmt, ...)
       state = 0;
     }
   }
+  __builtin_va_end(ap);
 }

@@ -25,14 +25,14 @@ static struct {
 } cons;
 
 static void
-printint(int xx, int base, int sign)
+printint(uint64 xx, int base, int sign)
 {
   static char digits[] = "0123456789abcdef";
-  char buf[16];
+  char buf[24];
   int i;
-  uint x;
+  uint64 x;
 
-  if(sign && (sign = xx < 0))
+  if(sign && (sign = (long)xx < 0))
     x = -xx;
   else
     x = xx;
@@ -54,8 +54,8 @@ printint(int xx, int base, int sign)
 void
 cprintf(char *fmt, ...)
 {
+  __builtin_va_list ap;
   int i, c, locking;
-  uint *argp;
   char *s;
 
   locking = cons.locking;
@@ -65,7 +65,7 @@ cprintf(char *fmt, ...)
   if (fmt == 0)
     panic("null fmt");
 
-  argp = (uint*)(void*)(&fmt + 1);
+  __builtin_va_start(ap, fmt);
   for(i = 0; (c = fmt[i] & 0xff) != 0; i++){
     if(c != '%'){
       consputc(c);
@@ -76,14 +76,16 @@ cprintf(char *fmt, ...)
       break;
     switch(c){
     case 'd':
-      printint(*argp++, 10, 1);
+      printint(__builtin_va_arg(ap, int), 10, 1);
       break;
     case 'x':
+      printint(__builtin_va_arg(ap, uint), 16, 0);
+      break;
     case 'p':
-      printint(*argp++, 16, 0);
+      printint(__builtin_va_arg(ap, uint64), 16, 0);
       break;
     case 's':
-      if((s = (char*)*argp++) == 0)
+      if((s = __builtin_va_arg(ap, char*)) == 0)
         s = "(null)";
       for(; *s; s++)
         consputc(*s);
@@ -98,6 +100,7 @@ cprintf(char *fmt, ...)
       break;
     }
   }
+  __builtin_va_end(ap);
 
   if(locking)
     release(&cons.lock);
@@ -107,7 +110,7 @@ void
 panic(char *s)
 {
   int i;
-  uint pcs[10];
+  uintp pcs[10];
 
   cli();
   cons.locking = 0;
@@ -115,7 +118,7 @@ panic(char *s)
   cprintf("lapicid %d: panic: ", lapicid());
   cprintf(s);
   cprintf("\n");
-  getcallerpcs(&s, pcs);
+  getcallerpcs(__builtin_frame_address(0), pcs);
   for(i=0; i<10; i++)
     cprintf(" %p", pcs[i]);
   panicked = 1; // freeze other CPU

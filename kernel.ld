@@ -1,15 +1,15 @@
-/* Simple linker script for the JOS kernel.
+/* Simple linker script for the xv6 x86-64 kernel.
    See the GNU ld 'info' manual ("info ld") to learn the syntax. */
 
-OUTPUT_FORMAT("elf32-i386", "elf32-i386", "elf32-i386")
-OUTPUT_ARCH(i386)
+OUTPUT_FORMAT("elf64-x86-64")
+OUTPUT_ARCH(i386:x86-64)
 ENTRY(_start)
 
 SECTIONS
 {
 	/* Link the kernel at this address: "." means the current address */
         /* Must be equal to KERNLINK */
-	. = 0x80100000;
+	. = 0xFFFFFFFF80100000;
 
 	.text : AT(0x100000) {
 		*(.text .stub .text.* .gnu.linkonce.t.*)
@@ -19,19 +19,6 @@ SECTIONS
 
 	.rodata : {
 		*(.rodata .rodata.* .gnu.linkonce.r.*)
-	}
-
-	/* Include debugging information in kernel memory */
-	.stab : {
-		PROVIDE(__STAB_BEGIN__ = .);
-		*(.stab);
-		PROVIDE(__STAB_END__ = .);
-	}
-
-	.stabstr : {
-		PROVIDE(__STABSTR_BEGIN__ = .);
-		*(.stabstr);
-		PROVIDE(__STABSTR_END__ = .);
 	}
 
 	/* Adjust the address for the data segment to the next page */
@@ -47,18 +34,19 @@ SECTIONS
 
 	/* The data segment */
 	.data : {
-		*(.data)
+		*(.data .data.*)
 	}
 
 	PROVIDE(edata = .);
 
 	.bss : {
-		*(.bss)
+		*(.bss .bss.*)
+		*(COMMON)
 	}
 
 	PROVIDE(end = .);
 
 	/DISCARD/ : {
-		*(.eh_frame .note.GNU-stack)
+		*(.eh_frame .note.GNU-stack .note.gnu.property .comment)
 	}
 }

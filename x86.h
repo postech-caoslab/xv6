@@ -62,13 +62,12 @@ struct segdesc;
 static inline void
 lgdt(struct segdesc *p, int size)
 {
-  volatile ushort pd[3];
+  volatile struct {
+    ushort limit;
+    uintp base;
+  } __attribute__((packed)) pd = { (ushort)(size-1), (uintp)p };
 
-  pd[0] = size-1;
-  pd[1] = (uint)p;
-  pd[2] = (uint)p >> 16;
-
-  asm volatile("lgdt (%0)" : : "r" (pd));
+  asm volatile("lgdt (%0)" : : "r" (&pd) : "memory");
 }
 
 struct gatedesc;
@@ -76,13 +75,12 @@ struct gatedesc;
 static inline void
 lidt(struct gatedesc *p, int size)
 {
-  volatile ushort pd[3];
+  volatile struct {
+    ushort limit;
+    uintp base;
+  } __attribute__((packed)) pd = { (ushort)(size-1), (uintp)p };
 
-  pd[0] = size-1;
-  pd[1] = (uint)p;
-  pd[2] = (uint)p >> 16;
-
-  asm volatile("lidt (%0)" : : "r" (pd));
+  asm volatile("lidt (%0)" : : "r" (&pd) : "memory");
 }
 
 static inline void
@@ -91,11 +89,11 @@ ltr(ushort sel)
   asm volatile("ltr %0" : : "r" (sel));
 }
 
-static inline uint
+static inline uintp
 readeflags(void)
 {
-  uint eflags;
-  asm volatile("pushfl; popl %0" : "=r" (eflags));
+  uintp eflags;
+  asm volatile("pushfq; popq %0" : "=r" (eflags));
   return eflags;
 }
 
@@ -130,54 +128,48 @@ xchg(volatile uint *addr, uint newval)
   return result;
 }
 
-static inline uint
+static inline uintp
 rcr2(void)
 {
-  uint val;
-  asm volatile("movl %%cr2,%0" : "=r" (val));
+  uintp val;
+  asm volatile("mov %%cr2,%0" : "=r" (val));
   return val;
 }
 
 static inline void
-lcr3(uint val)
+lcr3(uintp val)
 {
-  asm volatile("movl %0,%%cr3" : : "r" (val));
+  asm volatile("mov %0,%%cr3" : : "r" (val));
 }
 
 //PAGEBREAK: 36
 // Layout of the trap frame built on the stack by the
 // hardware and by trapasm.S, and passed to trap().
 struct trapframe {
-  // registers as pushed by pusha
-  uint edi;
-  uint esi;
-  uint ebp;
-  uint oesp;      // useless & ignored
-  uint ebx;
-  uint edx;
-  uint ecx;
-  uint eax;
+  // registers as pushed by trapasm.S (reverse push order)
+  uint64 rax;
+  uint64 rbx;
+  uint64 rcx;
+  uint64 rdx;
+  uint64 rbp;
+  uint64 rsi;
+  uint64 rdi;
+  uint64 r8;
+  uint64 r9;
+  uint64 r10;
+  uint64 r11;
+  uint64 r12;
+  uint64 r13;
+  uint64 r14;
+  uint64 r15;
 
-  // rest of trap frame
-  ushort gs;
-  ushort padding1;
-  ushort fs;
-  ushort padding2;
-  ushort es;
-  ushort padding3;
-  ushort ds;
-  ushort padding4;
-  uint trapno;
+  uint64 trapno;
 
-  // below here defined by x86 hardware
-  uint err;
-  uint eip;
-  ushort cs;
-  ushort padding5;
-  uint eflags;
-
-  // below here only when crossing rings, such as from user to kernel
-  uint esp;
-  ushort ss;
-  ushort padding6;
+  // below here defined by x86-64 hardware
+  uint64 err;
+  uint64 rip;
+  uint64 cs;
+  uint64 rflags;
+  uint64 rsp;
+  uint64 ss;
 };

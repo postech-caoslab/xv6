@@ -1,7 +1,7 @@
 #include "asm.h"
 #include "memlayout.h"
 #include "mmu.h"
-	
+
 # Each non-boot CPU ("AP") is started up in response to a STARTUP
 # IPI from the boot CPU.  Section B.4.2 of the Multi-Processor
 # Specification says that the AP will start in real mode with CS:IP
@@ -13,16 +13,16 @@
 #
 # Startothers (in main.c) sends the STARTUPs one at a time.
 # It copies this code (start) at 0x7000.  It puts the address of
-# a newly allocated per-core stack in start-4,the address of the
-# place to jump to (mpenter) in start-8, and the physical address
-# of entrypgdir in start-12.
+# a newly allocated per-core stack in start-8, the address of the
+# place to jump to (mpenter) in start-16, and the physical address
+# of bootpml4 in start-24.
 #
 # This code combines elements of bootasm.S and entry.S.
 
-.code16           
+.code16
 .globl start
 start:
-  cli            
+  cli
 
   # Zero data segment registers DS, ES, and SS.
   xorw    %ax,%ax
@@ -41,13 +41,13 @@ start:
   # Complete the transition to 32-bit protected mode by using a long jmp
   # to reload %cs and %eip.  The segment descriptors are set up with no
   # translation, so that the mapping is still the identity mapping.
-  ljmpl    $(SEG_KCODE<<3), $(start32)
+  ljmpl    $(3<<3), $(start32)
 
 //PAGEBREAK!
 .code32  # Tell assembler to generate 32-bit code now.
 start32:
   # Set up the protected-mode data segment registers
-  movw    $(SEG_KDATA<<3), %ax    # Our data segment selector
+  movw    $(2<<3), %ax            # Our data segment selector
   movw    %ax, %ds                # -> DS: Data Segment
   movw    %ax, %es                # -> ES: Extra Segment
   movw    %ax, %ss                # -> SS: Stack Segment
@@ -55,22 +55,42 @@ start32:
   movw    %ax, %fs                # -> FS
   movw    %ax, %gs                # -> GS
 
-  # Turn on page size extension for 4Mbyte pages
+  # Turn on physical address extension (required for long mode).
   movl    %cr4, %eax
-  orl     $(CR4_PSE), %eax
+  orl     $(CR4_PAE), %eax
   movl    %eax, %cr4
-  # Use entrypgdir as our initial page table
-  movl    (start-12), %eax
+  # Use the boot page tables built by the BSP (entry.S).
+  movl    (start-24), %eax
   movl    %eax, %cr3
-  # Turn on paging.
+  # Enable long mode (EFER.LME).
+  movl    $(EFER_MSR), %ecx
+  rdmsr
+  orl     $(EFER_LME), %eax
+  wrmsr
+  # Turn on paging: this activates long mode.
   movl    %cr0, %eax
   orl     $(CR0_PE|CR0_PG|CR0_WP), %eax
   movl    %eax, %cr0
 
+  # Switch to a 64-bit code segment.  The selector must equal
+  # SEG_KCODE<<3 so that %cs remains valid after seginit() installs
+  # the per-CPU GDT (interrupt frames store %cs, and iretq reloads it).
+  ljmp    $(1<<3), $(start64)
+
+.code64
+start64:
+  # SS/DS/ES: null selectors are fine in 64-bit ring 0.
+  xorw    %ax, %ax
+  movw    %ax, %ss
+  movw    %ax, %ds
+  movw    %ax, %es
+
   # Switch to the stack allocated by startothers()
-  movl    (start-4), %esp
+  movq    (start-8), %rsp
+  xorq    %rbp, %rbp
   # Call mpenter()
-  call	 *(start-8)
+  movq    (start-16), %rax
+  call    *%rax
 
   movw    $0x8a00, %ax
   movw    %ax, %dx
@@ -80,14 +100,15 @@ start32:
 spin:
   jmp     spin
 
-.p2align 2
+# Bootstrap GDT: null, 64-bit code, data, 32-bit code.
+# The 64-bit code and data selectors match SEG_KCODE and SEG_KDATA.
+.p2align 3
 gdt:
   SEG_NULLASM
-  SEG_ASM(STA_X|STA_R, 0, 0xffffffff)
-  SEG_ASM(STA_W, 0, 0xffffffff)
-
+  .quad 0x00209A0000000000              # 64-bit code (sel 0x08)
+  SEG_ASM(STA_W, 0, 0xffffffff)         # data        (sel 0x10)
+  SEG_ASM(STA_X|STA_R, 0, 0xffffffff)   # 32-bit code (sel 0x18)
 
 gdtdesc:
   .word   (gdtdesc - gdt - 1)
   .long   gdt
-

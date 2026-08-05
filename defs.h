@@ -126,7 +126,7 @@ void            swtch(struct context**, struct context*);
 
 // spinlock.c
 void            acquire(struct spinlock*);
-void            getcallerpcs(void*, uint*);
+void            getcallerpcs(void*, uintp*);
 int             holding(struct spinlock*);
 void            initlock(struct spinlock*, char*);
 void            release(struct spinlock*);
@@ -153,10 +153,12 @@ char*           strcat(char *dst, const char *src);
 
 // syscall.c
 int             argint(int, int*);
+int             argaddr(int, uintp*);
 int             argptr(int, char**, int);
 int             argstr(int, char**);
-int             fetchint(uint, int*);
-int             fetchstr(uint, char**);
+int             fetchint(uintp, int*);
+int             fetchuintp(uintp, uintp*);
+int             fetchstr(uintp, char**);
 void            syscall(void);
 
 // timer.c
@@ -178,15 +180,15 @@ void            seginit(void);
 void            kvmalloc(void);
 pde_t*          setupkvm(void);
 char*           uva2ka(pde_t*, char*);
-int             allocuvm(pde_t*, uint, uint);
-int             deallocuvm(pde_t*, uint, uint);
-void            freevm(pde_t*);
+uint64          allocuvm(pde_t*, uint64, uint64);
+uint64          deallocuvm(pde_t*, uint64, uint64);
+void            freevm(pde_t*, uint64);
 void            inituvm(pde_t*, char*, uint);
 int             loaduvm(pde_t*, char*, struct inode*, uint, uint);
-pde_t*          copyuvm(pde_t*, uint);
+pde_t*          copyuvm(pde_t*, uint64);
 void            switchuvm(struct proc*);
 void            switchkvm(void);
-int             copyout(pde_t*, uint, void*, uint);
+int             copyout(pde_t*, uint64, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
 
 // number of elements in fixed-size array

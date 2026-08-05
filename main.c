@@ -10,6 +10,7 @@ static void startothers(void);
 static void mpmain(void)  __attribute__((noreturn));
 extern pde_t *kpgdir;
 extern char end[]; // first address after kernel loaded from ELF file
+extern char bootpml4[]; // boot page table, set up in entry.S
 
 // Bootstrap processor starts running C code here.
 // Allocate a real stack and switch to it, first
@@ -30,7 +31,7 @@ main(void)
   tvinit();        // trap vectors
   binit();         // buffer cache
   fileinit();      // file table
-  ideinit();       // disk 
+  ideinit();       // disk
   startothers();   // start other processors
   kinit2(P2V(4*1024*1024), P2V(PHYSTOP)); // must come after startothers()
   userinit();      // first user process
@@ -57,8 +58,6 @@ mpmain(void)
   scheduler();     // start running processes
 }
 
-pde_t entrypgdir[];  // For entry.S
-
 // Start the non-boot (AP) processors.
 static void
 startothers(void)
@@ -72,19 +71,21 @@ startothers(void)
   // The linker has placed the image of entryother.S in
   // _binary_entryother_start.
   code = P2V(0x7000);
-  memmove(code, _binary_entryother_start, (uint)_binary_entryother_size);
+  memmove(code, _binary_entryother_start, (uintp)_binary_entryother_size);
 
   for(c = cpus; c < cpus+ncpu; c++){
     if(c == mycpu())  // We've started already.
       continue;
 
     // Tell entryother.S what stack to use, where to enter, and what
-    // pgdir to use. We cannot use kpgdir yet, because the AP processor
-    // is running in low  memory, so we use entrypgdir for the APs too.
+    // page table to use. We cannot use kpgdir yet, because the AP
+    // processor starts running in low memory, so we use the boot
+    // page tables from entry.S, which map low memory both at 0 and
+    // at KERNBASE.
     stack = kalloc();
-    *(void**)(code-4) = stack + KSTACKSIZE;
-    *(void(**)(void))(code-8) = mpenter;
-    *(int**)(code-12) = (void *) V2P(entrypgdir);
+    *(uint64*)(code-8) = (uint64)(stack + KSTACKSIZE);
+    *(uint64*)(code-16) = (uint64)(uintp)mpenter;
+    *(uint64*)(code-24) = V2P(bootpml4);
 
     lapicstartap(c->apicid, V2P(code));
 
@@ -94,23 +95,9 @@ startothers(void)
   }
 }
 
-// The boot page table used in entry.S and entryother.S.
-// Page directories (and page tables) must start on page boundaries,
-// hence the __aligned__ attribute.
-// PTE_PS in a page directory entry enables 4Mbyte pages.
-
-__attribute__((__aligned__(PGSIZE)))
-pde_t entrypgdir[NPDENTRIES] = {
-  // Map VA's [0, 4MB) to PA's [0, 4MB)
-  [0] = (0) | PTE_P | PTE_W | PTE_PS,
-  // Map VA's [KERNBASE, KERNBASE+4MB) to PA's [0, 4MB)
-  [KERNBASE>>PDXSHIFT] = (0) | PTE_P | PTE_W | PTE_PS,
-};
-
 //PAGEBREAK!
 // Blank page.
 //PAGEBREAK!
 // Blank page.
 //PAGEBREAK!
 // Blank page.
-

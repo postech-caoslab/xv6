@@ -7,26 +7,26 @@
 #include "mmu.h"
 #include "proc.h"
 
-int
+long
 sys_fork(void)
 {
   return fork();
 }
 
-int
+long
 sys_exit(void)
 {
   exit();
   return 0;  // not reached
 }
 
-int
+long
 sys_wait(void)
 {
   return wait();
 }
 
-int
+long
 sys_kill(void)
 {
   int pid;
@@ -36,16 +36,16 @@ sys_kill(void)
   return kill(pid);
 }
 
-int
+long
 sys_getpid(void)
 {
   return myproc()->pid;
 }
 
-int
+long
 sys_sbrk(void)
 {
-  int addr;
+  long addr;
   int n;
 
   if(argint(0, &n) < 0)
@@ -56,7 +56,7 @@ sys_sbrk(void)
   return addr;
 }
 
-int
+long
 sys_sleep(void)
 {
   int n;
@@ -79,7 +79,7 @@ sys_sleep(void)
 
 // return how many clock tick interrupts have occurred
 // since start.
-int
+long
 sys_uptime(void)
 {
   uint xticks;

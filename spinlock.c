@@ -39,7 +39,7 @@ acquire(struct spinlock *lk)
 
   // Record info about lock acquisition for debugging.
   lk->cpu = mycpu();
-  getcallerpcs(&lk, lk->pcs);
+  getcallerpcs(__builtin_frame_address(0), lk->pcs);
 }
 
 // Release the lock.
@@ -67,19 +67,20 @@ release(struct spinlock *lk)
   popcli();
 }
 
-// Record the current call stack in pcs[] by following the %ebp chain.
+// Record the current call stack in pcs[] by following the %rbp chain,
+// starting at the given frame pointer.
 void
-getcallerpcs(void *v, uint pcs[])
+getcallerpcs(void *v, uintp pcs[])
 {
-  uint *ebp;
+  uintp *rbp;
   int i;
 
-  ebp = (uint*)v - 2;
+  rbp = (uintp*)v;
   for(i = 0; i < 10; i++){
-    if(ebp == 0 || ebp < (uint*)KERNBASE || ebp == (uint*)0xffffffff)
+    if(rbp == 0 || rbp < (uintp*)KERNBASE || rbp == (uintp*)0xffffffffffffffff)
       break;
-    pcs[i] = ebp[1];     // saved %eip
-    ebp = (uint*)ebp[0]; // saved %ebp
+    pcs[i] = rbp[1];     // saved %rip
+    rbp = (uintp*)rbp[0]; // saved %rbp
   }
   for(; i < 10; i++)
     pcs[i] = 0;
@@ -104,7 +105,7 @@ holding(struct spinlock *lock)
 void
 pushcli(void)
 {
-  int eflags;
+  uintp eflags;
 
   eflags = readeflags();
   cli();

@@ -1,10 +1,14 @@
 #include "syscall.h"
 #include "traps.h"
 
+# System call arguments are already in the right registers
+# (%rdi, %rsi, %rdx, %rcx) per the x86-64 C calling convention;
+# the kernel reads them out of the trap frame.
+
 #define SYSCALL(name) \
   .globl name; \
   name: \
-    movl $SYS_ ## name, %eax; \
+    mov $SYS_ ## name, %eax; \
     int $T_SYSCALL; \
     ret
 

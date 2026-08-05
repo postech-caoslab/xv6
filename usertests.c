@@ -1451,7 +1451,7 @@ sbrktest(void)
   // can one grow address space to something big?
 #define BIG (100*1024*1024)
   a = sbrk(0);
-  amt = (BIG) - (uint)a;
+  amt = (BIG) - (uintp)a;
   p = sbrk(amt);
   if (p != a) {
     printf(stdout, "sbrk test failed to grow big address space; enough phys mem?\n");
@@ -1519,7 +1519,7 @@ sbrktest(void)
   for(i = 0; i < sizeof(pids)/sizeof(pids[0]); i++){
     if((pids[i] = fork()) == 0){
       // allocate a lot of memory
-      sbrk(BIG - (uint)sbrk(0));
+      sbrk(BIG - (uintp)sbrk(0));
       write(fds[1], "x", 1);
       // sit around until killed
       for(;;) sleep(1000);
@@ -1551,20 +1551,22 @@ void
 validateint(int *p)
 {
   int res;
-  asm("mov %%esp, %%ebx\n\t"
-      "mov %3, %%esp\n\t"
+  // point %rsp at a bad address while making a system call;
+  // the kernel must not be confused by it.
+  asm("mov %%rsp, %%rbx\n\t"
+      "mov %3, %%rsp\n\t"
       "int %2\n\t"
-      "mov %%ebx, %%esp" :
+      "mov %%rbx, %%rsp" :
       "=a" (res) :
-      "a" (SYS_sleep), "n" (T_SYSCALL), "c" (p) :
-      "ebx");
+      "a" (SYS_sleep), "n" (T_SYSCALL), "r" (p), "D" (0) :
+      "rbx");
 }
 
 void
 validatetest(void)
 {
   int hi, pid;
-  uint p;
+  uintp p;
 
   printf(stdout, "validate test\n");
   hi = 1100*1024;

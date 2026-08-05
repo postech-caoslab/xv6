@@ -8,14 +8,14 @@
 #include "syscall.h"
 
 // User code makes a system call with INT T_SYSCALL.
-// System call number in %eax.
-// Arguments on the stack, from the user call to the C
-// library system call function. The saved user %esp points
-// to a saved program counter, and then the first argument.
+// System call number in %rax.
+// Arguments in %rdi, %rsi, %rdx, %rcx, per the x86-64 C calling
+// convention (the int instruction preserves all registers, so the
+// arguments arrive in the trap frame).
 
 // Fetch the int at addr from the current process.
 int
-fetchint(uint addr, int *ip)
+fetchint(uintp addr, int *ip)
 {
   struct proc *curproc = myproc();
 
@@ -25,11 +25,23 @@ fetchint(uint addr, int *ip)
   return 0;
 }
 
+// Fetch the pointer-sized word at addr from the current process.
+int
+fetchuintp(uintp addr, uintp *ip)
+{
+  struct proc *curproc = myproc();
+
+  if(addr >= curproc->sz || addr+sizeof(uintp) > curproc->sz)
+    return -1;
+  *ip = *(uintp*)(addr);
+  return 0;
+}
+
 // Fetch the nul-terminated string at addr from the current process.
 // Doesn't actually copy the string - just sets *pp to point at it.
 // Returns length of string, not including nul.
 int
-fetchstr(uint addr, char **pp)
+fetchstr(uintp addr, char **pp)
 {
   char *s, *ep;
   struct proc *curproc = myproc();
@@ -45,11 +57,39 @@ fetchstr(uint addr, char **pp)
   return -1;
 }
 
+// Return the nth system call argument (raw register value).
+static uintp
+argraw(int n)
+{
+  struct trapframe *tf = myproc()->tf;
+
+  switch(n){
+  case 0:
+    return tf->rdi;
+  case 1:
+    return tf->rsi;
+  case 2:
+    return tf->rdx;
+  case 3:
+    return tf->rcx;
+  }
+  panic("argraw");
+}
+
 // Fetch the nth 32-bit system call argument.
 int
 argint(int n, int *ip)
 {
-  return fetchint((myproc()->tf->esp) + 4 + 4*n, ip);
+  *ip = argraw(n);
+  return 0;
+}
+
+// Fetch the nth system call argument as a pointer-sized integer.
+int
+argaddr(int n, uintp *ip)
+{
+  *ip = argraw(n);
+  return 0;
 }
 
 // Fetch the nth word-sized system call argument as a pointer
@@ -58,12 +98,11 @@ argint(int n, int *ip)
 int
 argptr(int n, char **pp, int size)
 {
-  int i;
+  uintp i;
   struct proc *curproc = myproc();
- 
-  if(argint(n, &i) < 0)
-    return -1;
-  if(size < 0 || (uint)i >= curproc->sz || (uint)i+size > curproc->sz)
+
+  i = argraw(n);
+  if(size < 0 || i >= curproc->sz || i+size > curproc->sz)
     return -1;
   *pp = (char*)i;
   return 0;
@@ -76,35 +115,32 @@ argptr(int n, char **pp, int size)
 int
 argstr(int n, char **pp)
 {
-  int addr;
-  if(argint(n, &addr) < 0)
-    return -1;
-  return fetchstr(addr, pp);
+  return fetchstr(argraw(n), pp);
 }
 
-extern int sys_chdir(void);
-extern int sys_close(void);
-extern int sys_dup(void);
-extern int sys_exec(void);
-extern int sys_exit(void);
-extern int sys_fork(void);
-extern int sys_fstat(void);
-extern int sys_getpid(void);
-extern int sys_kill(void);
-extern int sys_link(void);
-extern int sys_mkdir(void);
-extern int sys_mknod(void);
-extern int sys_open(void);
-extern int sys_pipe(void);
-extern int sys_read(void);
-extern int sys_sbrk(void);
-extern int sys_sleep(void);
-extern int sys_unlink(void);
-extern int sys_wait(void);
-extern int sys_write(void);
-extern int sys_uptime(void);
+extern long sys_chdir(void);
+extern long sys_close(void);
+extern long sys_dup(void);
+extern long sys_exec(void);
+extern long sys_exit(void);
+extern long sys_fork(void);
+extern long sys_fstat(void);
+extern long sys_getpid(void);
+extern long sys_kill(void);
+extern long sys_link(void);
+extern long sys_mkdir(void);
+extern long sys_mknod(void);
+extern long sys_open(void);
+extern long sys_pipe(void);
+extern long sys_read(void);
+extern long sys_sbrk(void);
+extern long sys_sleep(void);
+extern long sys_unlink(void);
+extern long sys_wait(void);
+extern long sys_write(void);
+extern long sys_uptime(void);
 
-static int (*syscalls[])(void) = {
+static long (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
 [SYS_exit]    sys_exit,
 [SYS_wait]    sys_wait,
@@ -134,12 +170,12 @@ syscall(void)
   int num;
   struct proc *curproc = myproc();
 
-  num = curproc->tf->eax;
+  num = curproc->tf->rax;
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
-    curproc->tf->eax = syscalls[num]();
+    curproc->tf->rax = syscalls[num]();
   } else {
     cprintf("%d %s: unknown sys call %d\n",
             curproc->pid, curproc->name, num);
-    curproc->tf->eax = -1;
+    curproc->tf->rax = -1;
   }
 }
