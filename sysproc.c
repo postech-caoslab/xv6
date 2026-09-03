@@ -7,6 +7,16 @@
 #include "mmu.h"
 #include "proc.h"
 
+// Power the machine off: the ACPI PM1a control register on QEMU's
+// default 'pc'/'q35' machines, then the older isa-debug port.
+long
+sys_shutdown(void)
+{
+  outw(0x604, 0x2000);
+  outw(0xB004, 0x2000);
+  return -1;  // the emulator ignored us
+}
+
 long
 sys_fork(void)
 {

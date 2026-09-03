@@ -120,6 +120,7 @@ argstr(int n, char **pp)
 
 extern long sys_chdir(void);
 extern long sys_close(void);
+extern long sys_shutdown(void);
 extern long sys_dup(void);
 extern long sys_exec(void);
 extern long sys_exit(void);
@@ -162,6 +163,7 @@ static long (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
+[SYS_shutdown] sys_shutdown,
 };
 
 void

@@ -174,6 +174,7 @@ UPROGS=\
 	_mkdir\
 	_rm\
 	_sh\
+	_shutdown\
 	_sleep\
 	_stressfs\
 	_usertests\
