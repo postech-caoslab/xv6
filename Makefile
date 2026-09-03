@@ -78,11 +78,13 @@ CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 &
 # rely on the (interrupt-unsafe) red zone.
 KCFLAGS = -mcmodel=kernel -mno-red-zone
 ASFLAGS = -m64 -gdwarf-2 -Wa,-divide
-LDFLAGS += -m elf_x86_64 -z max-page-size=0x1000
+# Everything here is linked with -N (omagic), so a single RWX LOAD segment is expected; binutils >= 2.39 warns about it, so turn that warning off.
+LDWARNFLAGS := $(shell $(LD) --no-warn-rwx-segments --version >/dev/null 2>&1 && echo --no-warn-rwx-segments)
+LDFLAGS += -m elf_x86_64 -z max-page-size=0x1000 $(LDWARNFLAGS)
 
 # Flags for the boot block, which runs in 32-bit protected mode.
 BOOTCFLAGS = -fno-pic -fno-pie -static -fno-builtin -fno-strict-aliasing -Os -Wall -Werror -m32 -march=i686 -fcf-protection=none -fno-stack-protector -fno-asynchronous-unwind-tables
-BOOTLDFLAGS = -m elf_i386
+BOOTLDFLAGS = -m elf_i386 $(LDWARNFLAGS)
 
 # Kernel objects need the kernel code model; user programs use the default.
 $(OBJS): CFLAGS += $(KCFLAGS)
