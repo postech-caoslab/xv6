@@ -88,14 +88,12 @@ BOOTLDFLAGS = -m elf_i386
 $(OBJS): CFLAGS += $(KCFLAGS)
 
 xv6.img: bootblock kernel
-	dd if=/dev/zero of=xv6.img count=10000
-	dd if=bootblock of=xv6.img conv=notrunc
-	dd if=kernel of=xv6.img seek=1 conv=notrunc
+	cat bootblock kernel > xv6.img
+	truncate -s 5120000 xv6.img
 
 xv6memfs.img: bootblock kernelmemfs
-	dd if=/dev/zero of=xv6memfs.img count=10000
-	dd if=bootblock of=xv6memfs.img conv=notrunc
-	dd if=kernelmemfs of=xv6memfs.img seek=1 conv=notrunc
+	cat bootblock kernelmemfs > xv6memfs.img
+	truncate -s 5120000 xv6memfs.img
 
 bootblock: bootasm.S bootmain.c
 	$(CC) $(BOOTCFLAGS) -nostdinc -I. -c bootmain.c
