@@ -3,3 +3,5 @@ build/
 *_basic-test
 *_addr-test
 *_thread-test
+
+.vscode
