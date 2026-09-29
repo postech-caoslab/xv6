@@ -95,6 +95,14 @@ startothers(void)
   }
 }
 
+void
+shutdown(void)
+{
+  outw(0x604, 0x2000);
+  outw(0xb004, 0x2000);
+  outw(0x4004, 0x3400);
+  for(;;);
+}
 //PAGEBREAK!
 // Blank page.
 //PAGEBREAK!
