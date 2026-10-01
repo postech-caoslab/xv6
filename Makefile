@@ -182,8 +182,15 @@ UPROGS=\
 	_zombie\
 	_memtest\
 
-fs.img: mkfs README $(UPROGS)
-	./mkfs fs.img README $(UPROGS)
+# "make qemu-nox init=usertests" bakes an /initrc into the disk image;
+# init runs that program once and then powers the machine off.  Plain
+# "make qemu" leaves it empty, so init starts the usual shell.
+.PHONY: force
+initrc: force
+	@echo "$(init)" | cmp -s - $@ || echo "$(init)" > $@
+
+fs.img: mkfs README initrc $(UPROGS)
+	./mkfs fs.img README initrc $(UPROGS)
 
 -include *.d
 
@@ -191,7 +198,7 @@ clean:
 	rm -f *.tex *.dvi *.idx *.aux *.log *.ind *.ilg \
 	*.o *.d *.asm *.sym vectors.S bootblock entryother \
 	initcode initcode.out kernel xv6.img fs.img kernelmemfs \
-	xv6memfs.img mkfs .gdbinit \
+	xv6memfs.img mkfs initrc .gdbinit \
 	$(UPROGS)
 
 # make a printout
