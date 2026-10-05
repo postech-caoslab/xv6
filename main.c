@@ -18,7 +18,6 @@ static const struct pinfo proc_info[] = {
 };
 static const int    policy  = SCHED_RR;
 static const int    window  = 20;
-static const int    points  = 10;
 static const char  *title   = "Quiz 1: round robin";
 static const int    order[] = { 1,2,3,4, 1,2,3,4, 1,2,3,4, 1,2,3,4, 1,2,3,4 };
 static const int    norder  = 20;
@@ -34,7 +33,6 @@ static const struct pinfo proc_info[] = {
 };
 static const int    policy  = SCHED_CFS;
 static const int    window  = 480;
-static const int    points  = 30;
 static const char  *title   = "Quiz 2: CFS";
 static const int    order[] = { 1,2,3, 1,1,1,2, 1,1,1,2, 1,1,1,2, 3, 1,1,1,2 };
 static const int    norder  = 20;
@@ -153,14 +151,14 @@ main(void)
   for(i = 0; i < num_proc; i++)
     if(proc_info[i].state == RUNNABLE)
       nrunnable++;
-  printf("%s  [%d points]\n", title, points);
+  printf("%s\n", title);
   printf("  input      : %d processes, %d ticks\n", nrunnable, window);
   if(!sim.error)
     print_order(norder);
 
   why = check(msg, sizeof msg);
   if(why){
-    printf("  RESULT: FAIL  0/%d points\n", points);
+    printf("  RESULT: FAIL\n");
     printf("  %s\n", why);
     return 1;
   }
@@ -170,6 +168,6 @@ main(void)
   printf("\n  dispatches :");
   for(i = 0; i < nwant; i++)
     printf(" pid%d %d", pids[i], dispatches(pids[i]));
-  printf("\n  RESULT: PASS  %d/%d points\n", points, points);
+  printf("\n  RESULT: PASS\n");
   return 0;
 }
