@@ -19,21 +19,21 @@ rr_pick(void)
 struct proc*
 cfs_pick(void)
 {
-  /* TODO: Q2*/
+  /* TODO: Q2-1*/
   return 0;
 }
 
 int
 cfs_slice(void)
 {
-  /* TODO: Q3 */
+  /* TODO: Q2-2 */
   return 0;
 }
 
 uint
 cfs_update_vrtime(int runtime, int nice, int vruntime)
 {
-  /* TODO: Q4 */
+  /* TODO: Q2-3 */
   return 0;
 }
 
