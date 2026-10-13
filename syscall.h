@@ -21,3 +21,6 @@
 #define SYS_mkdir  20
 #define SYS_close  21
 #define SYS_shutdown 22
+// Reserved by the course test skeleton. Add your scheduler syscalls after it.
+#define SYS_getrunticks 23   // DO NOT REMOVE: used by schedticks
+// TODO: assign the next syscall number to setnice.

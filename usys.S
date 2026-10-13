@@ -34,3 +34,5 @@ SYSCALL(sbrk)
 SYSCALL(sleep)
 SYSCALL(uptime)
 SYSCALL(shutdown)
+SYSCALL(getrunticks)   // DO NOT REMOVE: used by schedticks
+// TODO: add a SYSCALL stub for setnice.

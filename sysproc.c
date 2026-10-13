@@ -99,3 +99,5 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+// TODO: add sys_setnice().

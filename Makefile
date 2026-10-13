@@ -1,5 +1,6 @@
 OBJS = \
 	bio.o\
+	cfs.o\
 	console.o\
 	exec.o\
 	file.o\
@@ -22,6 +23,7 @@ OBJS = \
 	syscall.o\
 	sysfile.o\
 	sysproc.o\
+	testhook.o\
 	trapasm.o\
 	trap.o\
 	uart.o\
@@ -182,6 +184,13 @@ UPROGS=\
 	_zombie\
 	_memtest\
 
+# schedsmoke and schedticks call setnice(), so they are built only once
+# user.h declares it and usys.S has its stub. Before that the tree boots as
+# stock xv6.
+ifneq ($(shell grep -qs '^int setnice' user.h && grep -qs '^SYSCALL(setnice)' usys.S && echo yes),)
+UPROGS += _schedsmoke _schedticks
+endif
+
 # "make qemu-nox init=usertests" bakes an /initrc into the disk image;
 # init runs that program once and then powers the machine off.  Plain
 # "make qemu" leaves it empty, so init starts the usual shell.
@@ -224,7 +233,7 @@ QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
 	then echo "-gdb tcp::$(GDBPORT)"; \
 	else echo "-s -p $(GDBPORT)"; fi)
 ifndef CPUS
-CPUS := 2
+CPUS := 1
 endif
 QEMUOPTS = -drive file=fs.img,index=1,media=disk,format=raw -drive file=xv6.img,index=0,media=disk,format=raw -smp sockets=$(CPUS) -m 512 $(QEMUEXTRA)
 

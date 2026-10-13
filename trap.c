@@ -13,6 +13,7 @@ struct gatedesc idt[256];
 extern uintp vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
 uint ticks;
+void test_tick(void);   // DO NOT REMOVE: provided by testhook.c
 
 void
 tvinit(void)
@@ -103,8 +104,13 @@ trap(struct trapframe *tf)
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
   if(myproc() && myproc()->state == RUNNING &&
-     tf->trapno == T_IRQ0+IRQ_TIMER)
+     tf->trapno == T_IRQ0+IRQ_TIMER){
+    // Course-provided measurement hook. Keep this call when replacing
+    // the stock one-tick yield rule with your policy-specific preemption.
+    test_tick();   // DO NOT REMOVE
+    // TODO: yield() only when the process has used up its time slice.
     yield();
+  }
 
   // Check if the process has been killed since we yielded
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)

@@ -24,6 +24,8 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 int shutdown(void);
+int getrunticks(void);          // DO NOT REMOVE: provided measurement API for schedticks
+// TODO: declare the user function setnice().
 
 // ulib.c
 int stat(const char*, struct stat*);

@@ -7,6 +7,8 @@
 #include "proc.h"
 #include "spinlock.h"
 
+// TODO: include cfs.h.
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -20,10 +22,14 @@ extern void trapret(void);
 
 static void wakeup1(void *chan);
 
+// TODO: add setnice(), and any helper you need to decide when a slice has
+// ended.
+
 void
 pinit(void)
 {
   initlock(&ptable.lock, "ptable");
+  // TODO: initialize the runqueue (red-black tree).
 }
 
 // Must be called with interrupts disabled
@@ -88,6 +94,7 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  // TODO: initialize this process's CFS fields (vruntime, nice, weight, ...).
 
   release(&ptable.lock);
 
@@ -147,6 +154,7 @@ userinit(void)
   acquire(&ptable.lock);
 
   p->state = RUNNABLE;
+  // TODO: add the initial process to the red-black tree.
 
   release(&ptable.lock);
 }
@@ -212,7 +220,9 @@ fork(void)
 
   acquire(&ptable.lock);
 
+  // TODO: make the child inherit its parent's nice value.
   np->state = RUNNABLE;
+  // TODO: add the new child to the red-black tree (vruntime = min vruntime).
 
   release(&ptable.lock);
 
@@ -260,6 +270,8 @@ exit(void)
   }
 
   // Jump into the scheduler, never to return.
+  // TODO: remove the exiting process from the red-black tree before
+  // changing it to ZOMBIE.
   curproc->state = ZOMBIE;
   sched();
   panic("zombie exit");
@@ -293,6 +305,8 @@ wait(void)
         p->name[0] = 0;
         p->killed = 0;
         p->state = UNUSED;
+        // TODO: make sure the process is no longer in the red-black tree before
+        // this process-table slot can be reused by allocproc().
         release(&ptable.lock);
         return pid;
       }
@@ -328,13 +342,13 @@ scheduler(void)
     // Enable interrupts on this processor.
     sti();
 
+    // TODO: replace this round-robin scan with picking the process with the
+    // smallest vruntime.
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    int found = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
-      found = 1;
 
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
@@ -352,10 +366,6 @@ scheduler(void)
     }
     release(&ptable.lock);
 
-    // Nothing to run: halt until the next interrupt instead of
-    // spinning the CPU at 100%.
-    if(!found)
-      hlt();
   }
 }
 
@@ -391,6 +401,8 @@ yield(void)
 {
   acquire(&ptable.lock);  //DOC: yieldlock
   myproc()->state = RUNNABLE;
+  // TODO: put the preempted process back in the red-black tree, with its
+  // updated vruntime, before entering sched().
   sched();
   release(&ptable.lock);
 }
@@ -442,6 +454,8 @@ sleep(void *chan, struct spinlock *lk)
   // Go to sleep.
   p->chan = chan;
   p->state = SLEEPING;
+  // TODO: remove this sleeping process from the red-black tree before
+  // entering sched().
 
   sched();
 
@@ -465,6 +479,8 @@ wakeup1(void *chan)
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == SLEEPING && p->chan == chan)
+      // TODO: after making this process RUNNABLE, add it to the red-black tree
+      // (vruntime = min vruntime). Add braces as needed.
       p->state = RUNNABLE;
 }
 
@@ -490,6 +506,8 @@ kill(int pid)
     if(p->pid == pid){
       p->killed = 1;
       // Wake process from sleep if necessary.
+      // TODO: when this changes SLEEPING to RUNNABLE, add the process to the
+      // red-black tree (vruntime = min vruntime).
       if(p->state == SLEEPING)
         p->state = RUNNABLE;
       release(&ptable.lock);

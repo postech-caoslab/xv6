@@ -140,6 +140,9 @@ extern long sys_unlink(void);
 extern long sys_wait(void);
 extern long sys_write(void);
 extern long sys_uptime(void);
+extern long sys_getrunticks(void);   // DO NOT REMOVE: used by schedticks
+// TODO: declare sys_setnice(), then register it in the
+// syscall table below.
 
 static long (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -164,6 +167,8 @@ static long (*syscalls[])(void) = {
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
 [SYS_shutdown] sys_shutdown,
+[SYS_getrunticks] sys_getrunticks,   // DO NOT REMOVE: used by schedticks
+// TODO: add the setnice syscall table entry here.
 };
 
 void

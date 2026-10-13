@@ -124,6 +124,8 @@ int             wait(void);
 void            wakeup(void*);
 void            yield(void);
 
+// TODO: declare setnice() and the cfs.c functions used outside cfs.c.
+
 // swtch.S
 void            swtch(struct context**, struct context*);
 
