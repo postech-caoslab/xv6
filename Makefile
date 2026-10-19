@@ -191,6 +191,10 @@ ifneq ($(shell grep -qs '^int setnice' user.h && grep -qs '^SYSCALL(setnice)' us
 UPROGS += _schedsmoke _schedticks
 endif
 
+# statvruntime and statquiz2 (week 3) call procstat(), so the build stops
+# with an error until the system call exists.
+UPROGS += _statvruntime _statquiz2
+
 # "make qemu-nox init=usertests" bakes an /initrc into the disk image;
 # init runs that program once and then powers the machine off.  Plain
 # "make qemu" leaves it empty, so init starts the usual shell.
@@ -265,7 +269,7 @@ qemu-nox-gdb: fs.img xv6.img .gdbinit
 
 EXTRA=\
 	mkfs.c ulib.c user.h cat.c echo.c forktest.c grep.c kill.c\
-	ln.c ls.c mkdir.c rm.c stressfs.c usertests.c wc.c zombie.c\
+	ln.c ls.c mkdir.c rm.c statquiz2.c statvruntime.c stressfs.c usertests.c wc.c zombie.c\
 	printf.c umalloc.c memtest.c\
 	README dot-bochsrc *.pl toc.* runoff runoff1 runoff.list\
 	.gdbinit.tmpl gdbutil\
