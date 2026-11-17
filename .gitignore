@@ -1,0 +1,5 @@
+build/
+*.o
+*_basic-test
+*_addr-test
+*_thread-test
