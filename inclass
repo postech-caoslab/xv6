@@ -1,0 +1,25 @@
+#!/bin/bash
+
+cd "$(dirname "$0")" || exit 1
+
+case "$1" in
+1)
+	mkdir -p .vscode
+	cat > .vscode/settings.json <<JSON
+{
+    "chat.disableAIFeatures": true
+}
+JSON
+	echo "AI features disabled. Re-enable with: $0 0"
+	;;
+0)
+	rm -f .vscode/settings.json
+	echo "AI features re-enabled. Disable again with: $0 1"
+	;;
+*)
+	echo "Usage: $0 [1|0]"
+	echo "  $0 1  disable VS Code AI features"
+	echo "  $0 0  re-enable VS Code AI features"
+	exit 1
+	;;
+esac

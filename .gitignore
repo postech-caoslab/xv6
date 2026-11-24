@@ -1,0 +1,5 @@
+*.o
+swap_sim
+*.swp
+*.patch
+.vscode
