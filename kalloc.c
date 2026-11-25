@@ -79,6 +79,12 @@ kfree(char *v)
 // Allocate one 4096-byte page of physical memory.
 // Returns a pointer that the kernel can use.
 // Returns 0 if the memory cannot be allocated.
+//
+// TODO 6: make kalloc() support swap.
+//   If the free list is empty, swap one page out with swap_out() and try again.
+//   Return 0 only if swap_out() fails (returns -1).
+//   Call swap_out() after release(&kmem.lock): it sleeps, and it calls kfree(),
+//   which takes kmem.lock again.
 char*
 kalloc(void)
 {
@@ -94,3 +100,18 @@ kalloc(void)
   return (char*)r;
 }
 
+// Number of free physical pages.
+int
+freemem(void)
+{
+  struct run *r;
+  int n = 0;
+
+  if(kmem.use_lock)
+    acquire(&kmem.lock);
+  for(r = kmem.freelist; r; r = r->next)
+    n++;
+  if(kmem.use_lock)
+    release(&kmem.lock);
+  return n;
+}

@@ -32,7 +32,8 @@ seginit(void)
 // Return the address of the PTE in page table pgdir
 // that corresponds to virtual address va.  If alloc!=0,
 // create any required page-table pages.
-static pte_t *
+// Not static: swap.c walks page tables too.
+pte_t *
 walkpgdir(pde_t *pgdir, const void *va, int alloc)
 {
   pde_t *table = pgdir;
@@ -258,6 +259,7 @@ allocuvm(pde_t *pgdir, uint64 oldsz, uint64 newsz)
       kfree(mem);
       return 0;
     }
+    // TODO 4: put the new page on the use_list.          Hint: list_add()
   }
   return newsz;
 }
@@ -285,9 +287,11 @@ deallocuvm(pde_t *pgdir, uint64 oldsz, uint64 newsz)
       if(pa == 0)
         panic("kfree");
       char *v = P2V(pa);
+      // TODO 9: take the page off the use_list before freeing it.    Hint: list_remove()
       kfree(v);
       *pte = 0;
     }
+    // TODO 9: a swapped-out page (PTE_P = 0, PTE != 0): free its slot, PTE = 0.
   }
   return newsz;
 }
@@ -348,17 +352,26 @@ copyuvm(pde_t *pgdir, uint64 sz)
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
       panic("copyuvm: pte should exist");
+    // TODO 10: the parent's page is swapped out (PTE_P = 0, PTE != 0):
+    //   give the child its own copy of the slot (swapcopyslot()) and make the
+    //   child's PTE "swapped out" with the same flags.  Then continue.
     if(!(*pte & PTE_P))
       panic("copyuvm: page not present");
-    pa = PTE_ADDR(*pte);
-    flags = PTE_FLAGS(*pte);
     if((mem = kalloc()) == 0)
       goto bad;
+    if(!(*pte & PTE_P)){      // DO NOT REMOVE: kalloc() swapped out this very page,
+      kfree(mem);             // DO NOT REMOVE: so look at it again (TODO 10)
+      i -= PGSIZE;            // DO NOT REMOVE
+      continue;               // DO NOT REMOVE
+    }
+    pa = PTE_ADDR(*pte);
+    flags = PTE_FLAGS(*pte);
     memmove(mem, (char*)P2V(pa), PGSIZE);
     if(mappages(d, (void*)i, PGSIZE, V2P(mem), flags) < 0) {
       kfree(mem);
       goto bad;
     }
+    // TODO 10: put the child's page on the use_list.      Hint: list_add()
   }
   return d;
 

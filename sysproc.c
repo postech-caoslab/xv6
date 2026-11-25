@@ -99,3 +99,27 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+long
+sys_swapstat(void)
+{
+  int *nout, *nin;
+
+  if(argptr(0, (char**)&nout, sizeof(int)) < 0 ||
+     argptr(1, (char**)&nin, sizeof(int)) < 0)
+    return -1;
+  swapstat(nout, nin);
+  return 0;
+}
+
+long
+sys_freemem(void)
+{
+  return freemem();
+}
+
+long
+sys_swapslots(void)
+{
+  return swapslots();
+}

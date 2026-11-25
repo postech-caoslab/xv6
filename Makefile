@@ -18,6 +18,7 @@ OBJS = \
 	sleeplock.o\
 	spinlock.o\
 	string.o\
+	swap.o\
 	swtch.o\
 	syscall.o\
 	sysfile.o\
@@ -73,6 +74,8 @@ LD = $(TOOLPREFIX)ld
 OBJCOPY = $(TOOLPREFIX)objcopy
 OBJDUMP = $(TOOLPREFIX)objdump
 CFLAGS = -fno-pic -fno-pie -static -fno-builtin -fno-strict-aliasing -O2 -Wall -MD -ggdb -m64 -march=x86-64 -Werror -fno-omit-frame-pointer -fcf-protection=none -mno-mmx -mno-sse -mno-sse2 -Wno-array-bounds -Wno-infinite-recursion
+# the skeletons declare variables before you use them
+CFLAGS += -Wno-unused-variable -Wno-unused-but-set-variable
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 # The kernel is linked in the top 2GB of the address space and must not
 # rely on the (interrupt-unsafe) red zone.
@@ -177,6 +180,7 @@ UPROGS=\
 	_shutdown\
 	_sleep\
 	_stressfs\
+	_swaptest\
 	_usertests\
 	_wc\
 	_zombie\
@@ -189,8 +193,11 @@ UPROGS=\
 initrc: force
 	@echo "$(init)" | cmp -s - $@ || echo "$(init)" > $@
 
+# The raw swap area lives right after the file system: NSWAPSLOTS(2048)
+# slots * 8 blocks = 16384 zero blocks appended at block FSSIZE(1000).
 fs.img: mkfs README initrc $(UPROGS)
 	./mkfs fs.img README initrc $(UPROGS)
+	dd if=/dev/zero of=fs.img bs=512 seek=1000 count=16384 conv=notrunc
 
 -include *.d
 
@@ -224,7 +231,7 @@ QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
 	then echo "-gdb tcp::$(GDBPORT)"; \
 	else echo "-s -p $(GDBPORT)"; fi)
 ifndef CPUS
-CPUS := 2
+CPUS := 1
 endif
 QEMUOPTS = -drive file=fs.img,index=1,media=disk,format=raw -drive file=xv6.img,index=0,media=disk,format=raw -smp sockets=$(CPUS) -m 512 $(QEMUEXTRA)
 

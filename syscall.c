@@ -140,6 +140,9 @@ extern long sys_unlink(void);
 extern long sys_wait(void);
 extern long sys_write(void);
 extern long sys_uptime(void);
+extern long sys_swapstat(void);
+extern long sys_freemem(void);
+extern long sys_swapslots(void);
 
 static long (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -164,6 +167,9 @@ static long (*syscalls[])(void) = {
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
 [SYS_shutdown] sys_shutdown,
+[SYS_swapstat] sys_swapstat,
+[SYS_freemem] sys_freemem,
+[SYS_swapslots] sys_swapslots,
 };
 
 void

@@ -67,6 +67,7 @@ void            ioapicinit(void);
 // kalloc.c
 char*           kalloc(void);
 void            kfree(char*);
+int             freemem(void);
 void            kinit1(void*, void*);
 void            kinit2(void*, void*);
 
@@ -178,6 +179,17 @@ extern struct spinlock tickslock;
 void            uartinit(void);
 void            uartintr(void);
 void            uartputc(int);
+
+// swap.c
+void            swapinit(void);
+int             swap_out(void);
+int             swap_in(uint64*, uint64);
+void            list_add(pde_t*, uint64);
+void            list_remove(uint64);
+int             swapcopyslot(int);
+void            slotfree(int);
+void            swapstat(int*, int*);
+int             swapslots(void);
 
 // vm.c
 void            seginit(void);

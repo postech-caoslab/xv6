@@ -138,7 +138,8 @@ idestart(struct buf *b)
 {
   if(b == 0)
     panic("idestart");
-  if(b->blockno >= FSSIZE)
+  // the raw swap area lives in the 8*NSWAPSLOTS blocks after the FS
+  if(b->blockno >= FSSIZE + 8*NSWAPSLOTS)
     panic("incorrect blockno");
   int sector_per_block =  BSIZE/SECTOR_SIZE;
   int sector = b->blockno * sector_per_block;

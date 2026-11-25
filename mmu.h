@@ -87,10 +87,18 @@ struct segdesc {
 #define PTE_P           0x001   // Present
 #define PTE_W           0x002   // Writeable
 #define PTE_U           0x004   // User
+#define PTE_A           0x020   // Accessed (set by hardware)
+#define PTE_D           0x040   // Dirty (set by hardware)
 #define PTE_PS          0x080   // Page Size (2MB pages in a PD entry)
 
 // Address in page table or page directory entry
 #define PTE_ADDR(pte)   ((uintp)(pte) & 0xFFFFFFFFFF000)
+// A user PTE is in one of three states:
+//   frame address | flags | PTE_P   page in memory
+//   slot << 12    | flags           page swapped out to that slot (slot >= 1)
+//   0                               no page
+// PTE_P = 0 makes the hardware ignore the other bits, so the slot number can live there.
+#define PTE_SLOT(pte)   ((uintp)(pte) >> 12)
 #define PTE_FLAGS(pte)  ((uintp)(pte) &  0xFFF)
 
 #ifndef __ASSEMBLER__

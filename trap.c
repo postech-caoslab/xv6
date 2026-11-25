@@ -14,6 +14,8 @@ extern uintp vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
 uint ticks;
 
+pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc);   // vm.c
+
 void
 tvinit(void)
 {
@@ -77,6 +79,18 @@ trap(struct trapframe *tf)
             cpuid(), tf->cs, tf->rip);
     lapiceoi();
     break;
+
+  // TODO 8: page fault (T_PGFLT).
+  //   (1) Get the faulting address: va = rcr2().
+  //   (2) Is it a swapped-out user page?  All of these must hold:
+  //         myproc() != 0, va < USERTOP,
+  //         pte = walkpgdir(myproc()->pgdir, (void*)va, 0) is not 0,
+  //         PTE_P is 0, and *pte != 0.
+  //       Other page faults (an address never mapped, a write without PTE_W,
+  //       a user access to kernel memory) are not: the process must still be killed.
+  //   (3) Yes -> swap_in(pte, PGROUNDDOWN(va)).  It returns 0 -> break
+  //       (the access runs again).
+  //   (4) Otherwise, or if swap_in() fails -> fall through to default (kill).
 
   //PAGEBREAK: 13
   default:

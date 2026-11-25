@@ -21,3 +21,6 @@
 #define SYS_mkdir  20
 #define SYS_close  21
 #define SYS_shutdown 22
+#define SYS_swapstat 23
+#define SYS_freemem  24
+#define SYS_swapslots 25
