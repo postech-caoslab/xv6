@@ -328,6 +328,9 @@ scheduler(void)
     // Enable interrupts on this processor.
     sti();
 
+    // Keep interrupts disabled until we decide whether to halt.
+    cli();
+
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
     int found = 0;
@@ -352,10 +355,10 @@ scheduler(void)
     }
     release(&ptable.lock);
 
-    // Nothing to run: halt until the next interrupt instead of
-    // spinning the CPU at 100%.
+    // A pending interrupt must wake the CPU at hlt. STI delays
+    // interrupt delivery until after the following instruction.
     if(!found)
-      hlt();
+      asm volatile("sti; hlt" ::: "memory");
   }
 }
 

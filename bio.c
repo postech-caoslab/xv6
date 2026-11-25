@@ -115,6 +115,17 @@ bwrite(struct buf *b)
   iderw(b);
 }
 
+// Replace a full block without reading its old contents.
+void
+bwriteblock(uint dev, uint blockno, const void *data)
+{
+  struct buf *b = bget(dev, blockno);
+
+  memmove(b->data, data, BSIZE);
+  bwrite(b);
+  brelse(b);
+}
+
 // Release a locked buffer.
 // Move to the head of the MRU list.
 void
